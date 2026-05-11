@@ -38,7 +38,7 @@ export default class GameScene extends Phaser.Scene {
         // startFollow(target, roundPixels, lerpX, lerpY, offsetX, offsetY)
         // offsetY 设为 -300 让人物处于屏幕偏上位置
         this.cameras.main.startFollow(this.player.sprite, false, 0.1, 0.1, 0, -300);
-        this.cameras.main.setBackgroundColor('#faf9f6'); // 暖白/纸张色，更护眼且符合禅意
+        this.cameras.main.setBackgroundColor('#f0f0f0'); // 中性的浅灰色，避免暖色在部分屏幕上显粉
         
         // 输入控制
         this.cursors = this.input.keyboard.createCursorKeys();
@@ -657,7 +657,10 @@ export default class GameScene extends Phaser.Scene {
         if (this.isFinished) return; // 防止重复触发
         this.isFinished = true;
         this.endTime = Date.now(); // 记录结束时间
-        
+
+        // 停止雪暴（防止 update 提前返回导致粒子残留）
+        this.stopBlizzard();
+
         try {
             this.player.sprite.setVelocity(0, 0); // 停止
             this.physics.pause(); // 暂停物理
@@ -1607,44 +1610,6 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.flash(200, 0, 255, 255); // Cyan flash
     }
 
-    createFinishLine(y) {
-        // 创建终点横幅
-        const width = this.scale.width * 2; // 足够宽
-        const graphics = this.make.graphics({x: 0, y: 0, add: false});
-        
-        // 绘制黑白格旗帜
-        const boxSize = 40;
-        const cols = Math.ceil(width / boxSize);
-        const rows = 2;
-        
-        for (let i = 0; i < cols; i++) {
-            for (let j = 0; j < rows; j++) {
-                graphics.fillStyle((i + j) % 2 === 0 ? 0x000000 : 0xffffff, 1);
-                graphics.fillRect(i * boxSize, j * boxSize, boxSize, boxSize);
-            }
-        }
-        graphics.generateTexture('finish_banner', width, boxSize * rows);
-        
-        const banner = this.add.image(this.player.sprite.x, y, 'finish_banner');
-        banner.setDepth(500);
-        
-        // 两侧立柱
-        const postLeft = this.add.rectangle(this.player.sprite.x - 300, y, 20, 300, 0x8B4513).setDepth(500);
-        const postRight = this.add.rectangle(this.player.sprite.x + 300, y, 20, 300, 0x8B4513).setDepth(500);
-        
-        // 添加文字
-        const text = this.add.text(this.player.sprite.x, y - 100, 'FINISH LINE', {
-            fontSize: '48px',
-            fill: '#ff0000',
-            fontStyle: 'bold',
-            stroke: '#ffffff',
-            strokeThickness: 6
-        }).setOrigin(0.5).setDepth(501);
-        
-        // 确保不会被清理
-        // (不需要特殊处理，cleanupEnvironment 只清理上方的)
-    }
-
     createGate(x, y, width) {
         // 左旗
         const leftFlag = this.add.image(x - width / 2, y, 'gate_left');
@@ -1997,7 +1962,10 @@ export default class GameScene extends Phaser.Scene {
     gameOver() {
         if (this.isGameOver) return;
         this.isGameOver = true;
-        
+
+        // 停止雪暴（防止 update 提前返回导致粒子残留）
+        this.stopBlizzard();
+
         this.player.die();
         this.cameras.main.shake(500, 0.01);
         
