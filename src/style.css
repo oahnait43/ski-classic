@@ -1,0 +1,14 @@
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #f0f8ff; /* AliceBlue，雪的颜色 */
+  touch-action: none; /* 禁止浏览器默认触摸行为 */
+  user-select: none; /* 禁止选中文本 */
+  -webkit-user-select: none;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+}
