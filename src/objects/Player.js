@@ -19,12 +19,13 @@ export default class Player {
         this.sprite.setOrigin(0.5, 0.85);
         this.sprite.setDepth(10); // 确保玩家在最上层
 
-        // 物理属性
-        this.sprite.setFriction(0.005); // 地面摩擦力
-        this.sprite.setFrictionAir(0.02); // 增加空气阻力，限制终极速度
-        this.sprite.setBounce(0.1); // 降低弹性
-        this.sprite.setMass(50);
-        this.sprite.setFixedRotation(); 
+        // 物理属性 — 雪面摩擦参数
+        // setFriction 只在碰撞接触时生效，核心阻力靠 frictionAir
+        this.sprite.setFriction(0.02);   // 雪面摩擦系数
+        this.sprite.setFrictionAir(0.008); // 基础空气/雪面阻力
+        this.sprite.setBounce(0.1);
+        this.sprite.setMass(60); // 增加质量让滑行更有重量感
+        this.sprite.setFixedRotation();
 
         // 状态
         this.isAlive = true;
@@ -66,8 +67,8 @@ export default class Player {
             }
         }
         
-        // 限制最大速度
-        const maxVelocity = 11;
+        // 限制最大速度（配合新摩擦参数，保持约3分钟到终点）
+        const maxVelocity = 10;
         if (this.sprite.body.velocity.y > maxVelocity) {
             this.sprite.setVelocityY(maxVelocity);
         }
@@ -80,17 +81,20 @@ export default class Player {
 
         const velocity = this.sprite.body.velocity;
 
-        // 1. 物理运动
-        // 转向阻力
-        const turnDrag = Math.abs(controls.tilt) * 0.04;
-
-        let airFriction = 0.0005 + turnDrag;
+        // 1. 物理运动 — 雪面阻力模型
+        // 转弯阻力：转得越狠阻力越大（模拟雪板 carving 切入雪面）
+        const turnDrag = Math.abs(controls.tilt) * 0.12;
+        // 速度阻力：越快阻力越大（模拟风阻 + 雪粉飞溅的能量损失）
+        const speedDrag = Math.abs(velocity.y) * 0.0004;
+        // 基础雪面阻力 + 转弯阻力 + 速度阻力 = 沙沙的雪感
+        let airFriction = 0.008 + turnDrag + speedDrag;
         this.sprite.setFrictionAir(airFriction);
 
-        this.sprite.setFriction(0.003);
+        // 地面摩擦：直行时轻微，转弯时增大（模拟雪板推雪）
+        this.sprite.setFriction(0.008 + Math.abs(controls.tilt) * 0.04);
 
-        // 横向控制力
-        let forceX = controls.tilt * config.turnSpeed;
+        // 横向控制力 — 略降低让转向更有重量感
+        let forceX = controls.tilt * config.turnSpeed * 0.8;
 
         // 空中控制
         if (this.isJumping && this.airControlFactor > 0) {
@@ -98,8 +102,8 @@ export default class Player {
         }
         this.sprite.applyForce({ x: forceX, y: 0 });
 
-        // 速度限制
-        const maxSpeedX = 9;
+        // 速度限制 — 降低横向极速，转弯更有"切入雪面"的感觉
+        const maxSpeedX = 6;
         if (velocity.x > maxSpeedX) this.sprite.setVelocityX(maxSpeedX);
         if (velocity.x < -maxSpeedX) this.sprite.setVelocityX(-maxSpeedX);
 
@@ -132,10 +136,10 @@ export default class Player {
             this.particles.stop(); // 跳跃时不产生雪花
             // 移除 setRotation(0)，让 tween 控制旋转
         } else {
-            // 根据 tilt 值进行更平滑的视觉旋转
-            const targetRotation = controls.tilt * 0.5; // 加大旋转幅度
+            // 根据 tilt 值进行更平滑的视觉旋转 — 降低 lerp 让转向更沉稳
+            const targetRotation = controls.tilt * 0.4;
             const currentRotation = this.sprite.rotation;
-            this.sprite.setRotation(Phaser.Math.Linear(currentRotation, targetRotation, 0.2));
+            this.sprite.setRotation(Phaser.Math.Linear(currentRotation, targetRotation, 0.12));
 
             if (controls.tilt < -0.1) {
                 this.sprite.setTexture('player_left');

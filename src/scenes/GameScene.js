@@ -13,7 +13,7 @@ export default class GameScene extends Phaser.Scene {
         const urlParams = new URLSearchParams(window.location.search);
         
         this.config = {
-            slope: parseFloat(urlParams.get('slope')) || 0.005, // 坡度带来的额外推力
+            slope: parseFloat(urlParams.get('slope')) || 0.007, // 坡度推力（配合新摩擦参数，保持速度感）
             turnSpeed: parseFloat(urlParams.get('turn')) || 0.05, // 转向灵敏度
             obstacleDensity: parseInt(urlParams.get('density')) || 2, // 障碍物密度
             friction: parseFloat(urlParams.get('friction')) || 0.005 // 摩擦力
