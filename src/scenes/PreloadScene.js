@@ -279,9 +279,9 @@ export default class PreloadScene extends Phaser.Scene {
         birdG.strokePath();
         birdG.generateTexture('bird', 40, 20);
 
-        // 10. 粒子
+        // 10. 粒子 (纯白不透明，避免 WebGL 预乘 alpha 导致的粉色偏色)
         const particleG = this.make.graphics({x:0, y:0, add: false});
-        particleG.fillStyle(0x333333, 0.5); // 墨水点
+        particleG.fillStyle(0xffffff, 1);
         particleG.fillCircle(2, 2, 2);
         particleG.generateTexture('snow_particle', 4, 4);
 

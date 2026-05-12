@@ -450,10 +450,6 @@ export default class GameScene extends Phaser.Scene {
                         const windPhase = this.time.now * 0.001;
                         const windForce = Math.sin(windPhase) * 0.015 + Math.sin(windPhase * 0.7) * 0.01;
                         this.player.sprite.applyForce({x: windForce, y: 0});
-
-                        if (this.blizzardEmitter) {
-                             this.blizzardEmitter.setSpeedX({ min: windForce * 3000 - 80, max: windForce * 3000 + 80 });
-                        }
                     }
                 } else {
                     // 暂时停歇
@@ -1333,14 +1329,15 @@ export default class GameScene extends Phaser.Scene {
             this.blizzardEmitter = this.add.particles(0, 0, 'snow_particle', {
                 x: { min: -100, max: this.scale.width + 100 },
                 y: -50,
-                quantity: 2,
-                lifespan: 2000,
-                gravityY: 50,
-                speedX: { min: -200, max: 200 }, // 强风左右吹
-                speedY: { min: 300, max: 500 }, // 高速下落
-                scale: { min: 0.5, max: 1.5 },
-                alpha: { start: 0.8, end: 0 },
-                emitting: false 
+                quantity: 1,
+                frequency: 50,
+                lifespan: 3000,
+                gravityY: 30,
+                speedX: { min: -100, max: 100 },
+                speedY: { min: 100, max: 200 },
+                scale: { min: 0.8, max: 2.5 },
+                alpha: { start: 0.6, end: 0 },
+                emitting: false
             });
             this.blizzardEmitter.setDepth(2000); // 最上层
             this.blizzardEmitter.setScrollFactor(0); // 跟随摄像机
