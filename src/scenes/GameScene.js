@@ -23,11 +23,11 @@ export default class GameScene extends Phaser.Scene {
     }
 
     create() {
-        // 确保 UIScene 重启以刷新事件绑定（场景重启后旧的事件监听会失效）
-        if (this.scene.isActive('UIScene')) {
-            this.scene.stop('UIScene');
-        }
+        // 确保 UIScene 启动（场景重启后 UIScene 需要重新绑定事件）
         this.scene.launch('UIScene');
+
+        // 防卡死：连续更新失败或空转计数器，超过阈值则重启
+        this.stuckCounter = 0;
 
         // 设置世界边界：扩大宽度给玩家更多横向空间
         const worldWidth = this.scale.width * 6;
@@ -41,7 +41,7 @@ export default class GameScene extends Phaser.Scene {
         // startFollow(target, roundPixels, lerpX, lerpY, offsetX, offsetY)
         // offsetY 设为 -300 让人物处于屏幕偏上位置
         this.cameras.main.startFollow(this.player.sprite, false, 0.15, 0.12, 0, -300);
-        this.cameras.main.setBackgroundColor('#f0f0f0'); // 中性的浅灰色，避免暖色在部分屏幕上显粉
+        this.cameras.main.setBackgroundColor('#ffffff'); // 纯白背景，彻底避免偏色
         
         // 输入控制
         this.cursors = this.input.keyboard.createCursorKeys();
@@ -414,9 +414,23 @@ export default class GameScene extends Phaser.Scene {
     }
 
     update() {
+        // 防卡死检测：如果连续多次更新失败，自动重启场景
+        if (this.stuckCounter > 300) {
+            console.warn('Game seems stuck, restarting...');
+            this.scene.restart();
+            return;
+        }
+
         if (this.isGameOver) return;
         // 如果已经到达终点，停止大部分逻辑，只保留必要的渲染
         if (this.isFinished) return;
+
+        // 基础健康检查：如果玩家精灵丢失，等待几帧后尝试重启
+        if (!this.player || !this.player.sprite || !this.player.sprite.active) {
+            this.stuckCounter++;
+            return;
+        }
+        this.stuckCounter = 0;
 
         try {
             // 雪暴逻辑 (2km - 7km 随机区域)
@@ -595,7 +609,7 @@ export default class GameScene extends Phaser.Scene {
             }
         } catch (error) {
             console.error('Game Loop Error:', error);
-            // 尝试恢复或忽略错误，避免卡死
+            this.stuckCounter += 10; // 错误一次记为10帧卡顿，快速触发重启
         }
     }
 

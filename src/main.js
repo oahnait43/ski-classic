@@ -9,7 +9,7 @@ const config = {
     width: window.innerWidth,
     height: window.innerHeight,
     parent: 'app',
-    backgroundColor: '#f0f8ff',
+    backgroundColor: '#ffffff',
     scale: {
         mode: Phaser.Scale.RESIZE,
         autoCenter: Phaser.Scale.CENTER_BOTH
