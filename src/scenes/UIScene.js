@@ -359,8 +359,8 @@ export default class UIScene extends Phaser.Scene {
         .setDepth(2001)
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', () => {
+            // 只需重启 GameScene，其 create() 会自动重启 UIScene 并刷新事件绑定
             this.scene.get('GameScene').scene.restart();
-            this.scene.restart();
         })
         .on('pointerover', () => restartBtn.setColor('#000'))
         .on('pointerout', () => restartBtn.setColor('#333'));

@@ -107,15 +107,15 @@ export default class Player {
         if (!this.isJumping) {
             this.sprite.applyForce({ x: 0, y: config.slope });
 
-            // 减少轨迹生成频率，提高性能
-            if (this.scene.time.now % 80 < 20) {
+            // 减少轨迹生成频率，适应降低后的速度
+            if (this.scene.time.now % 120 < 20) {
                 this.createTrail();
             }
         }
 
-        // 速度反馈：高速时生成速度线
+        // 速度反馈：高速时生成速度线 (阈值适应降低后的最大速度)
         const speed = Math.abs(velocity.y);
-        if (speed > 18 && !this.isJumping && this.scene.time.now % 120 < 20) {
+        if (speed > 8 && !this.isJumping && this.scene.time.now % 150 < 20) {
             this.createSpeedLine();
         }
 
@@ -290,9 +290,12 @@ export default class Player {
             }
         });
 
-        // 空中控制力衰减计时
-        this.scene.time.delayedCall(totalDuration * 0.6, () => {
-            this.airControlFactor = 0.2; // 后半段只剩20%
+        // 空中控制力衰减 — 全程平滑递减，最后剩 20%
+        this.scene.time.delayedCall(totalDuration * 0.3, () => {
+            this.airControlFactor = 0.4;
+        });
+        this.scene.time.delayedCall(totalDuration * 0.7, () => {
+            this.airControlFactor = 0.2;
         });
 
         // 落地回调
@@ -300,8 +303,17 @@ export default class Player {
             if (!this.scene || !this.sprite.active) return;
             this.isJumping = false;
             this.airControlFactor = 0;
-            this.sprite.setAngle(0);
-            this.sprite.setScale(1);
+
+            // 平滑恢复旋转和缩放，避免视觉突变
+            this.scene.tweens.add({
+                targets: this.sprite,
+                angle: 0,
+                scaleX: 1,
+                scaleY: 1,
+                duration: 150,
+                ease: 'Sine.easeOut'
+            });
+
             if (this.jumpTween && this.jumpTween.isPlaying()) {
                 this.jumpTween.stop();
             }

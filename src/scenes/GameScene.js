@@ -23,11 +23,14 @@ export default class GameScene extends Phaser.Scene {
     }
 
     create() {
-        // 确保 UIScene 启动
+        // 确保 UIScene 重启以刷新事件绑定（场景重启后旧的事件监听会失效）
+        if (this.scene.isActive('UIScene')) {
+            this.scene.stop('UIScene');
+        }
         this.scene.launch('UIScene');
 
-        // 设置世界边界：扩大宽度以适应缩小后的视野
-        const worldWidth = this.scale.width * 4; 
+        // 设置世界边界：扩大宽度给玩家更多横向空间
+        const worldWidth = this.scale.width * 6;
         this.matter.world.setBounds(-worldWidth / 2, -1000, worldWidth * 2, Infinity, 30, true, true, false, false);
         
         // 创建玩家
@@ -37,7 +40,7 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.setZoom(0.35); // 调整为 0.35
         // startFollow(target, roundPixels, lerpX, lerpY, offsetX, offsetY)
         // offsetY 设为 -300 让人物处于屏幕偏上位置
-        this.cameras.main.startFollow(this.player.sprite, false, 0.1, 0.1, 0, -300);
+        this.cameras.main.startFollow(this.player.sprite, false, 0.15, 0.12, 0, -300);
         this.cameras.main.setBackgroundColor('#f0f0f0'); // 中性的浅灰色，避免暖色在部分屏幕上显粉
         
         // 输入控制
@@ -442,9 +445,10 @@ export default class GameScene extends Phaser.Scene {
                         }
                     }
                     
-                    // 强风干扰 - 降低风力幅度
+                    // 强风干扰 - 使用正弦波使风力平滑变化，避免每帧随机抖动
                     if (this.player && this.player.sprite && this.player.sprite.active) {
-                        const windForce = (Math.random() - 0.5) * 0.025;
+                        const windPhase = this.time.now * 0.001;
+                        const windForce = Math.sin(windPhase) * 0.015 + Math.sin(windPhase * 0.7) * 0.01;
                         this.player.sprite.applyForce({x: windForce, y: 0});
 
                         if (this.blizzardEmitter) {
@@ -506,14 +510,12 @@ export default class GameScene extends Phaser.Scene {
                                 const angle = Phaser.Math.Angle.Between(obs.x, obs.y, this.player.sprite.x, this.player.sprite.y);
                                 // 提高吸附速度 (15 -> 25)
                                 const speed = 25;
-                                
-                                // 由于金币是 Static 刚体，setVelocity 不起作用
-                                // 需要手动更新位置
-                                obs.x += Math.cos(angle) * speed;
-                                obs.y += Math.sin(angle) * speed;
-                                
-                                // 如果使用了 setPosition 也可以
-                                // obs.setPosition(obs.x + Math.cos(angle) * speed, obs.y + Math.sin(angle) * speed);
+
+                                // 使用 setPosition 同时更新物理碰撞体位置，让磁铁吸附后能真正收集到金币
+                                obs.setPosition(
+                                    obs.x + Math.cos(angle) * speed,
+                                    obs.y + Math.sin(angle) * speed
+                                );
                             }
                         }
                     });
@@ -906,7 +908,6 @@ export default class GameScene extends Phaser.Scene {
                         // 熊咬人不走 updateHealth，避免提前触发 gameOver()
                         this.hp -= 3;
                         if (this.hp < 0) this.hp = 0;
-                        this.events.emit('updateHealth', this.hp);
                         this.showFloatingText(this.player.sprite.x, this.player.sprite.y - 50, '-3 HP', '#ff0000');
                         bear.lastDamageTime = this.time.now;
                         this.cameras.main.shake(100, 0.003);
@@ -915,7 +916,7 @@ export default class GameScene extends Phaser.Scene {
                         if (this.hp <= 0) {
                             this.bearEatPlayer(bear);
                         } else {
-                            // 有血时正常emit血量更新
+                            // 只在有血时 emit 血量更新，避免重复
                             this.events.emit('updateHealth', this.hp);
                         }
                     }
